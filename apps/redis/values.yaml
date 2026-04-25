@@ -1,0 +1,17 @@
+redis:
+  architecture: replication
+  replica:
+    replicaCount: 3
+  auth:
+    existingSecret: redis-secret
+    existingSecretPasswordKey: password
+  sentinel:
+    enabled: true
+  master:
+    persistence:
+      storageClass: "default"
+      size: 5Gi
+  replica:
+    persistence:
+      storageClass: "default"
+      size: 5Gi

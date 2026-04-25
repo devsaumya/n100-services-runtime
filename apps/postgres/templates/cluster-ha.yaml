@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-ha
+  namespace: data
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+
+  storage:
+    size: 10Gi
+    storageClass: default # Managed by Kyverno
+
+  bootstrap:
+    initdb:
+      database: appdb
+      owner: admin
+      secret:
+        name: postgres-secret
+
+  monitoring:
+    enablePodMonitor: true
