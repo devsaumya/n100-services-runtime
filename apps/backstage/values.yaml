@@ -1,0 +1,29 @@
+image:
+  repository: backstage/backstage
+  tag: latest
+
+config:
+  app:
+    baseUrl: "https://portal.yourdomain.com"
+  backend:
+    baseUrl: "https://portal.yourdomain.com"
+    database:
+      client: pg
+      connection:
+        host: postgres-ha-rw.data.svc.cluster.local
+        port: 5432
+        user: admin
+        password:
+          secretName: postgres-secret
+          secretKey: POSTGRES_PASSWORD
+
+auth:
+  providers:
+    oidc:
+      authelia:
+        metadataUrl: "https://auth.yourdomain.com/.well-known/openid-configuration"
+
+namespace:
+  labels:
+    project-name: "home-cluster"
+    stage: "prod"
