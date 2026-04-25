@@ -1,0 +1,30 @@
+immich:
+  persistence:
+    library:
+      enabled: true
+      storageClass: "default"
+      size: 50Gi
+    postgres:
+      enabled: true
+      storageClass: "default"
+      size: 5Gi
+
+env:
+  TZ: Asia/Kolkata
+
+# Ingress configuration with OAuth2 Protection
+ingress:
+  main:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.middlewares: oauth2-proxy-oauth-auth@kubernetescrd
+    hosts:
+      - host: photos.yourdomain.com # Updated to match Homer Dashboard
+        paths:
+          - path: /
+            pathType: Prefix
+
+# Node affinity to target the agent node
+nodeSelector:
+  workload: "true"

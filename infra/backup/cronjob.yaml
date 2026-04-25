@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nfs-backup
+  namespace: infra
+spec:
+  schedule: "0 2 * * *"   # daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: alpine:latest
+            command:
+              - /bin/sh
+              - -c
+              - |
+                apk add --no-cache rsync tar
+                BACKUP_DIR="/backup/$(date +%F)"
+                mkdir -p "$BACKUP_DIR"
+                echo "Starting backup to $BACKUP_DIR"
+                tar -czf "$BACKUP_DIR/apps.tar.gz" /data/apps
+                tar -czf "$BACKUP_DIR/db.tar.gz" /data/db
+                echo "Backup completed successfully"
+                # Optional: Retention cleanup (keep 7 days)
+                find /backup -type d -mtime +7 -exec rm -rf {} \;
+            volumeMounts:
+              - name: nfs-data
+                mountPath: /data
+              - name: backup-target
+                mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: nfs-data
+              nfs:
+                server: 192.168.1.10
+                path: /nfs/k8s
+            - name: backup-target
+              nfs:
+                server: 192.168.1.10
+                path: /nfs/backups

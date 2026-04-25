@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps
+  labels:
+    project-name: home-cluster
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+  labels:
+    project-name: home-cluster
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data
+  labels:
+    project-name: home-cluster
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infra
+  labels:
+    project-name: home-cluster

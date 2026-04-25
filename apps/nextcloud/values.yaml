@@ -1,0 +1,15 @@
+nextcloud:
+  host: nextcloud.yourdomain.com
+  persistence:
+    enabled: true
+    storageClass: "default"
+    size: 100Gi
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: "network-system-nextcloud-redirect@kubernetescrd"
+
+phpClientHttpsFix:
+  enabled: true
