@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: n100-services-runtime
+  description: "User workloads and applications running on the N100 node."
+  annotations:
+    github.com/project-slug: devsaumya/n100-services-runtime
+spec:
+  type: service
+  lifecycle: production
+  owner: saumya
+  system: home-platform
