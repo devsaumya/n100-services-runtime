@@ -1,0 +1,13 @@
+enabled: true
+
+# Target Namespace
+namespace: data
+
+# MongoDB Atlas Connection
+mongodb:
+  clusterName: "cluster0"
+  secretName: "mongodb-atlas-creds"
+  # This key must exist in Bitwarden
+  bitwardenKey: "MONGODB_ATLAS_URI"
+
+# Usage: Any app can now mount 'mongodb-atlas-creds' to get the full URI
