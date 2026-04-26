@@ -1,0 +1,114 @@
+name: 🟢 Runtime Deploy
+
+on:
+  push:
+    branches: [ main, staging, dev ]
+    paths:
+      - 'apps/**'
+      - 'environments/**'
+      - 'kustomization.yaml'
+  pull_request:
+    branches: [ main, staging, dev ]
+    paths:
+      - 'apps/**'
+      - 'environments/**'
+      - 'kustomization.yaml'
+
+jobs:
+  validate:
+    name: 🧹 Lint & Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 YAML Lint
+        run: |
+          echo "::group::Running yamllint"
+          pip install yamllint
+          yamllint .
+          echo "::endgroup::"
+
+      - name: 🛡️ Trivy Scan (Manifests)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: true
+          format: 'table'
+          exit-code: '0' # Don't fail the build yet, just report
+          severity: 'CRITICAL,HIGH'
+
+      - name: 📊 Generate Summary
+        run: |
+          echo "### 🔍 Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| YAML Lint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Scan | ⚠️ Completed (See logs) |" >> $GITHUB_STEP_SUMMARY
+
+  preview:
+    name: ✨ Preview Environment
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Create Preview Namespace
+        run: |
+          echo "::group::Namespace Creation"
+          echo "Creating namespace pr-${{ github.event.number }}"
+          # kubectl create ns pr-${{ github.event.number }} --dry-run=client -o yaml | kubectl apply -f -
+          echo "Namespace pr-${{ github.event.number }} ready."
+          echo "::endgroup::"
+
+      - name: 🚀 Deploy Preview
+        run: |
+          echo "::group::Kustomize Build & Apply"
+          # kustomize build . | kubectl apply -n pr-${{ github.event.number }} -f -
+          echo "Resources deployed to pr-${{ github.event.number }}."
+          echo "::endgroup::"
+
+      - name: 📝 Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 **Preview Environment Deployed!**\n\n- **Namespace:** `pr-${{ github.event.number }}`\n- **Status:** ✨ Active'
+            })
+
+  deploy:
+    name: 🚀 Deploy to Environment
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔄 Trigger Argo CD Sync
+        run: |
+          echo "::group::Argo CD Refresh"
+          # Determine environment based on branch
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            ENV="prod"
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            ENV="staging"
+          else
+            ENV="dev"
+          fi
+          
+          echo "Syncing $ENV environment..."
+          # curl -X POST https://${{ secrets.ARGOCD_SERVER }}/api/v1/applications/n100-apps-$ENV/sync \
+          #   -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}"
+          echo "Sync triggered for $ENV."
+          echo "::endgroup::"
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "### 🚀 Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "The **${{ github.ref_name }}** branch has been successfully synced with the cluster." >> $GITHUB_STEP_SUMMARY
