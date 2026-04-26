@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: iot-isolation
+  namespace: iot
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {} # Allow traffic within namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik # Allow ingress from traefik
+  egress:
+  - to:
+    - podSelector: {} # Allow traffic within namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system # Allow DNS
+      ports:
+      - port: 53
+        protocol: UDP
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: data # Allow traffic to Postgres HA

@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: iot-alerts
+  namespace: iot
+spec:
+  groups:
+    - name: iot.rules
+      rules:
+        - alert: DeviceOffline
+          expr: time() - mqtt_last_seen > 60
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Device offline"
+            description: "Device {{ $labels.clientid }} has not been seen for over 60 seconds."
+
+        - alert: HighMessageRate
+          expr: rate(mqtt_messages_total[1m]) > 1000
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High MQTT message rate"
+
+        - alert: MQTTDown
+          expr: up{job="mqtt"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MQTT Broker is down"

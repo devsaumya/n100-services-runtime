@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodered
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodered
+  template:
+    metadata:
+      labels:
+        app: nodered
+    spec:
+      containers:
+        - name: nodered
+          image: nodered/node-red:4.0.0
+          ports:
+            - containerPort: 1880

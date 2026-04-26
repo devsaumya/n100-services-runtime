@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-lake-config
+  namespace: iot
+data:
+  storage-config.yaml: |
+    hot:
+      type: postgres
+      host: postgres-ha-rw.data.svc.cluster.local
+    cold:
+      type: s3
+      minio:
+        endpoint: minio.storage.svc.cluster.local
+        bucket: iot-cold-storage
+      r2:
+        endpoint: ${R2_ENDPOINT}
+        bucket: iot-archive
+    format: parquet
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: data-lake-secrets
+  namespace: iot
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: bitwarden-login
+    kind: ClusterSecretStore
+  target:
+    name: data-lake-s3-creds
+  data:
+    - secretKey: accessKey
+      remoteRef:
+        key: iot/cold-storage/access-key
+    - secretKey: secretKey
+      remoteRef:
+        key: iot/cold-storage/secret-key

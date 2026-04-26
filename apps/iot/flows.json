@@ -1,0 +1,43 @@
+[
+  {
+    "id": "mqtt-in",
+    "type": "mqtt in",
+    "z": "flow1",
+    "name": "MQTT Input",
+    "topic": "home/+/+",
+    "broker": "mqtt-broker",
+    "x": 150,
+    "y": 100,
+    "wires": [["json-parse"]]
+  },
+  {
+    "id": "json-parse",
+    "type": "json",
+    "z": "flow1",
+    "name": "Parse JSON",
+    "x": 350,
+    "y": 100,
+    "wires": [["transform"]]
+  },
+  {
+    "id": "transform",
+    "type": "function",
+    "z": "flow1",
+    "name": "Transform",
+    "func": "msg.topicParts = msg.topic.split('/');\nmsg.payload = {\n  device: msg.topicParts[1],\n  metric: msg.topicParts[2],\n  value: msg.payload.value,\n  ts: new Date()\n};\nreturn msg;",
+    "x": 550,
+    "y": 100,
+    "wires": [["postgres"]]
+  },
+  {
+    "id": "postgres",
+    "type": "postgresql",
+    "z": "flow1",
+    "name": "Insert DB",
+    "query": "INSERT INTO iot_metrics(device, metric, value, ts) VALUES($1,$2,$3,$4)",
+    "params": "msg.payload.device,msg.payload.metric,msg.payload.value,msg.payload.ts",
+    "x": 750,
+    "y": 100,
+    "wires": []
+  }
+]

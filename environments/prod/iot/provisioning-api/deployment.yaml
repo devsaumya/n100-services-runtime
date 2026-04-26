@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: provisioning-api-code
+  namespace: iot
+data:
+  app.js: |
+    import express from "express";
+    import pkg from "pg";
+    import crypto from "crypto";
+
+    const { Pool } = pkg;
+    const app = express();
+    app.use(express.json());
+
+    const pool = new Pool({
+      connectionString: process.env.DB_URL,
+    });
+
+    const rand = (n=24) => crypto.randomBytes(n).toString("hex");
+
+    app.post("/register", async (req, res) => {
+      const { device_id } = req.body;
+      if (!device_id) return res.status(400).json({ error: "device_id required" });
+
+      const username = device_id;
+      const password = rand(16);
+      const topic    = `home/${device_id}/#`;
+
+      await pool.query(
+        `INSERT INTO devices(device_id, username, password, topic)
+         VALUES($1,$2,$3,$4)
+         ON CONFLICT (device_id) DO UPDATE
+         SET password=$3, topic=$4`,
+        [device_id, username, password, topic]
+      );
+
+      res.json({
+        mqtt: {
+          host: process.env.MQTT_HOST,
+          port: 8883,
+          username,
+          password,
+          topic
+        }
+      });
+    });
+
+    app.get("/healthz", (_, res) => res.send("ok"));
+    app.listen(3000, () => console.log("Provisioning API on 3000"));
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provisioning-api
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: provisioning-api
+  template:
+    metadata:
+      labels:
+        app: provisioning-api
+    spec:
+      containers:
+      - name: api
+        image: node:18-alpine
+        command: ["node", "/app/app.js"]
+        env:
+        - name: DB_URL
+          value: "postgresql://admin:adminpass@postgres-ha-rw.data.svc.cluster.local/iotdb"
+        - name: MQTT_HOST
+          value: "emqx.iot.svc.cluster.local"
+        volumeMounts:
+        - name: code
+          mountPath: /app
+      volumes:
+      - name: code
+        configMap:
+          name: provisioning-api-code

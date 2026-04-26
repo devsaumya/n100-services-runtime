@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt
+  namespace: iot
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mqtt
+  template:
+    metadata:
+      labels:
+        app: mqtt
+    spec:
+      containers:
+        - name: emqx
+          image: emqx/emqx:5.6
+          ports:
+            - containerPort: 1883
+            - containerPort: 8883

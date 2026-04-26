@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../namespaces/iot-namespaces.yaml
+  - ../../../apps/iot/emqx-stack.yaml
+  - ../../../apps/iot/node-red-stack.yaml
+  - ../../../apps/iot/influxdb-stack.yaml
+  - ../../../apps/iot/provisioning-api.yaml
+  - ../../../apps/iot/rollout.yaml
+  - ../../../apps/iot/data-lake.yaml
+  - ../../../apps/iot/network-policies.yaml
+  - ../../../apps/iot/monitoring.yaml
+
+# Apply environment-specific patches or config here
+commonLabels:
+  environment: dev
+
+# Ensure Linkerd injection for mTLS
+patches:
+  - target:
+      kind: Namespace
+      name: iot
+    patch: |-
+      - op: add
+        path: /metadata/annotations/linkerd.io~1inject
+        value: enabled

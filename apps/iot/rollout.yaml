@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: nodered
+  namespace: iot
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodered
+  template:
+    metadata:
+      labels:
+        app: nodered
+    spec:
+      containers:
+        - name: nodered
+          image: nodered/node-red:4.0.0
+          ports:
+            - containerPort: 1880
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: { duration: 60s }
+        - analysis:
+            templates:
+              - templateName: iot-success-rate
+            args:
+              - name: service
+                value: nodered
+        - setWeight: 50
+        - pause: { duration: 120s }
+        - setWeight: 100
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: iot-success-rate
+  namespace: iot
+spec:
+  metrics:
+    - name: error-rate
+      interval: 30s
+      successCondition: result < 0.02
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc:9090
+          query: |
+            sum(rate(http_requests_total{app="{{args.service}}",status=~"5.."}[1m]))
+            /
+            sum(rate(http_requests_total{app="{{args.service}}"}[1m]))

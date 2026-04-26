@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt
+  namespace: iot
+spec:
+  selector:
+    app: mqtt
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: 1883
+    - name: mqttssl
+      port: 8883
+      targetPort: 8883

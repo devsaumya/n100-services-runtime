@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqtt-acl
+  namespace: iot
+data:
+  acl.conf: |
+    {allow, {user, "admin"}, subscribe, ["#"]}.
+    {allow, {user, "admin"}, publish, ["#"]}.
+    {deny, all}.

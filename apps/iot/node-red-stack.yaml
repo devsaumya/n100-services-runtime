@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: node-red
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/saumya/home-platform-engg-devops-nas-k8s-foundation
+    targetRevision: master
+    path: managed-service-catalog/helm/node-red
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: iot
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-red-settings
+  namespace: iot
+type: Opaque
+stringData:
+  settings.js: |
+    module.exports = {
+      adminAuth: {
+        type: "credentials",
+        users: [{
+          username: "admin",
+          password: "\$2b\$08\$hashedpassword", // Should be replaced by real hash
+          permissions: "*"
+        }]
+      },
+      functionGlobalContext: {
+        postgres: require('pg')
+      }
+    }

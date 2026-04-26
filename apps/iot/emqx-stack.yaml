@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: emqx-cluster
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/saumya/home-platform-engg-devops-nas-k8s-foundation
+    targetRevision: master
+    path: managed-service-catalog/helm/emqx
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: iot
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqtt-acl
+  namespace: iot
+data:
+  acl.conf: |
+    {allow, {user, "admin"}, subscribe, ["#"]}.
+    {allow, {user, "admin"}, publish, ["#"]}.
+    {allow, {user, "nodered"}, subscribe, ["home/#"]}.
+    {allow, {user, "nodered"}, publish, ["home/#"]}.
+    {allow, {user, "device1"}, publish, ["home/device1/#"]}.
+    {allow, {user, "device1"}, subscribe, ["home/device1/#"]}.
+    {deny, all}.
