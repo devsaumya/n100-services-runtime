@@ -7,8 +7,7 @@ resources:
   - provisioning-api/
   - rollout/
   - ../../../namespaces/iot-namespaces.yaml
-  - ../../../apps/iot/monitoring.yaml
-  - ../../../apps/iot/network-policies.yaml
+  - ../../../base/iot
 
 commonLabels:
   environment: prod

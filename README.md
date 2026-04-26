@@ -1,57 +1,58 @@
-# 🟢 N100 Services Runtime
+# 🚀 N100 Services Runtime
 
-This repository manages the application workloads and runtime services deployed on the **N100 Mini PC** worker node. It follows a GitOps model, synchronized via **Argo CD**.
+The "Workload" repository for the Home Platform. This is where IoT stacks, personal apps, and data pipelines live. Managed entirely via GitOps with support for Canary deployments.
 
-## 🚀 Overview
+## 📁 1. Repository Structure
+- **`apps/`**: Base manifests for all services (IoT, API, Monitoring).
+- **`base/`**: Shared core resources (NetworkPolicies, ResourceQuotas).
+- **`environments/`**: Kustomize overlays for `dev` and `prod`.
+- **`tools/`**: Automation scripts (e.g., Backstage Catalog Generator).
 
-The runtime layer contains:
-- 🌐 **Web Applications**: Backstage, Immich, Nextcloud.
-- 🏗️ **Core Services**: API, n8n (Automation).
-- 🗄️ **Databases**: Postgres HA (CloudNativePG), Redis (Sentinel), RabbitMQ.
-- 🔐 **Connectors**: External DB connectors and secrets.
+---
 
-## 📂 Repository Structure
+## 🏗️ 2. The IoT Stack
+A production-grade messaging and telemetry pipeline:
+1.  **EMQX**: High-availability MQTT broker.
+2.  **Provisioning API**: Automated per-device unique identity registration.
+3.  **Node-RED**: Stream processing flows (MQTT -> SQL/Parquet).
+4.  **InfluxDB/Postgres**: Dual-sink telemetry storage.
 
-```bash
-.
-├── apps/                   # Application-specific Helm charts and manifests
-│   ├── api/               # Custom API service
-│   ├── immich/            # Media management
-│   ├── nextcloud/         # Cloud storage
-│   └── ...                # Other workloads
-├── environments/           # Environment-specific overrides (dev, staging, prod)
-├── infra/                  # Shared runtime infrastructure (backups, etc.)
-├── kustomize/              # Kustomize base and overlays for deployment
-└── .github/workflows/      # Automated deployment pipelines
+---
+
+## 🔁 3. GitOps Workflow
+To add or update a service:
+1.  Add your manifests to `apps/<app-name>/`.
+2.  Add a reference in `environments/prod/iot/kustomization.yaml`.
+3.  `git commit -m "feat: add <app-name>"`
+4.  `git push`
+5.  Argo CD will detect the change and deploy it.
+
+### Canary Deployments
+Critical services (like Node-RED) use **Argo Rollouts**:
+```yaml
+strategy:
+  canary:
+    steps:
+      - setWeight: 20
+      - pause: { duration: 60s }
+      - analysis: { templateName: success-rate }
 ```
 
-## 🔄 GitOps Workflow
+---
 
-1.  **Develop**: Changes are made in `apps/` or `environments/`.
-2.  **Validate**: GitHub Actions run YAML linting, security scans, and Kustomize builds.
-3.  **Deploy**: 
-    - **PRs**: Trigger a **Preview Environment** in a dedicated namespace.
-    - **Merge to `main`**: Triggers a production sync via Argo CD.
+## 📊 4. Developer Experience
+- **Backstage**: All apps in this repo are automatically discovered and cataloged.
+- **CI/CD**: Every push triggers a **Trivy security scan** and an automated build.
 
-## 🛠️ Usage
+---
 
-### Local Validation
-```bash
-# Validate Kustomize build
-kustomize build kustomize/overlays/prod
-```
+## 🛡️ 5. Resource Controls
+All production workloads are governed by:
+- **ResourceQuotas**: Hard limits per namespace.
+- **LimitRanges**: Default requests/limits for every pod.
+- **NetworkPolicies**: Strict "Default Deny" traffic rules.
 
-### Manual Deploy (Emergency Only)
-```bash
-kubectl apply -k kustomize/overlays/prod
-```
+---
 
-## 🛡️ Security
-
-- All images are scanned by **Trivy**.
-- Secrets are managed via **External Secrets** (Bitwarden).
-- Network policies enforce isolation between workloads.
-
-## 🤝 Contributing
-
-Follow the standard PR workflow. Ensure all linting passes before requesting a review.
+## 🎨 System Architecture
+![Hybrid Architecture](../nas-k8s-foundation/docs/assets/hybrid_architecture.png)
