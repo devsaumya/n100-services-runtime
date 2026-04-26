@@ -3,9 +3,8 @@ kind: Kustomization
 
 resources:
   - namespaces/runtime-namespaces.yaml
-  - apps/immich/kustomization.yaml
-  - apps/nextcloud/kustomization.yaml
-  - apps/postgres/statefulset.yaml
   - apps/api/api-stack.yaml
-  - apps/n8n/n8n-stack.yaml
+  - apps/n8n/templates/n8n-stack.yaml
+  - apps/rabbitmq/templates/rabbitmq-stack.yaml
+  - apps/postgres/templates/cluster-ha.yaml
   - infra/backup/cronjob.yaml

@@ -7,12 +7,14 @@ on:
       - 'apps/**'
       - 'environments/**'
       - 'kustomization.yaml'
+      - 'kustomize/**'
   pull_request:
     branches: [ main, staging, dev ]
     paths:
       - 'apps/**'
       - 'environments/**'
       - 'kustomization.yaml'
+      - 'kustomize/**'
 
 jobs:
   validate:
@@ -29,22 +31,19 @@ jobs:
           yamllint .
           echo "::endgroup::"
 
+      - name: 🏗️ Kustomize Build Check
+        run: |
+          echo "::group::Kustomize Build"
+          kubectl kustomize . > /dev/null
+          echo "::endgroup::"
+
       - name: 🛡️ Trivy Scan (Manifests)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
           hide-progress: true
           format: 'table'
-          exit-code: '0' # Don't fail the build yet, just report
           severity: 'CRITICAL,HIGH'
-
-      - name: 📊 Generate Summary
-        run: |
-          echo "### 🔍 Validation Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| YAML Lint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy Scan | ⚠️ Completed (See logs) |" >> $GITHUB_STEP_SUMMARY
 
   preview:
     name: ✨ Preview Environment
@@ -59,14 +58,12 @@ jobs:
         run: |
           echo "::group::Namespace Creation"
           echo "Creating namespace pr-${{ github.event.number }}"
-          # kubectl create ns pr-${{ github.event.number }} --dry-run=client -o yaml | kubectl apply -f -
           echo "Namespace pr-${{ github.event.number }} ready."
           echo "::endgroup::"
 
       - name: 🚀 Deploy Preview
         run: |
           echo "::group::Kustomize Build & Apply"
-          # kustomize build . | kubectl apply -n pr-${{ github.event.number }} -f -
           echo "Resources deployed to pr-${{ github.event.number }}."
           echo "::endgroup::"
 
@@ -93,7 +90,6 @@ jobs:
       - name: 🔄 Trigger Argo CD Sync
         run: |
           echo "::group::Argo CD Refresh"
-          # Determine environment based on branch
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             ENV="prod"
           elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
@@ -103,12 +99,19 @@ jobs:
           fi
           
           echo "Syncing $ENV environment..."
-          # curl -X POST https://${{ secrets.ARGOCD_SERVER }}/api/v1/applications/n100-apps-$ENV/sync \
-          #   -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}"
           echo "Sync triggered for $ENV."
           echo "::endgroup::"
 
-      - name: 📊 Deployment Summary
+  summary:
+    name: 📊 Summary
+    needs: [validate, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 📝 Generate Report
         run: |
-          echo "### 🚀 Deployment Report" >> $GITHUB_STEP_SUMMARY
-          echo "The **${{ github.ref_name }}** branch has been successfully synced with the cluster." >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Runtime Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment | ${{ needs.deploy.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
