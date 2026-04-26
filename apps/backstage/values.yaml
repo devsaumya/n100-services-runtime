@@ -1,6 +1,6 @@
 image:
   repository: backstage/backstage
-  tag: latest
+  tag: 1.50.1
 
 config:
   app:
