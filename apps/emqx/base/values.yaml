@@ -1,0 +1,41 @@
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+emqxConfig:
+  EMQX_CLUSTER__DISCOVERY: "dns"
+  EMQX_CLUSTER__DNS__NAME: "emqx-headless.default.svc.cluster.local"
+
+  EMQX_LISTENERS__TCP__DEFAULT__ENABLED: "true"
+  EMQX_LISTENERS__SSL__DEFAULT__ENABLED: "true"
+  EMQX_LISTENERS__SSL__DEFAULT__BIND: "0.0.0.0:8883"
+
+  # Limits to protect broker
+  EMQX_MQTT__MAX_CLIENTID_LEN: "64"
+  EMQX_ZONE__EXTERNAL__MAX_CONN_RATE: "1000/s"
+  EMQX_ZONE__EXTERNAL__MAX_INFLIGHT: "32"
+  EMQX_ZONE__EXTERNAL__MAX_QOS_ALLOWED: "1"
+  EMQX_ZONE__EXTERNAL__MAX_PACKET_SIZE: "1MB"
+
+  # Auth + ACL using HTTP custom service
+  EMQX_AUTHENTICATION__1__MECHANISM: "password_based"
+  EMQX_AUTHENTICATION__1__BACKEND: "http"
+  EMQX_AUTHENTICATION__1__METHOD: "post"
+  EMQX_AUTHENTICATION__1__URL: "http://iot-auth-api.default.svc.cluster.local:3000/mqtt/auth"
+  EMQX_AUTHENTICATION__1__HEADERS__content_type: "application/json"
+  EMQX_AUTHENTICATION__1__BODY: '{"clientid": "${clientid}", "username": "${username}", "password": "${password}"}'
+
+  EMQX_AUTHORIZATION__SOURCES__1__TYPE: "http"
+  EMQX_AUTHORIZATION__SOURCES__1__METHOD: "post"
+  EMQX_AUTHORIZATION__SOURCES__1__URL: "http://iot-auth-api.default.svc.cluster.local:3000/mqtt/acl"
+  EMQX_AUTHORIZATION__SOURCES__1__HEADERS__content_type: "application/json"
+  EMQX_AUTHORIZATION__SOURCES__1__BODY: '{"clientid": "${clientid}", "username": "${username}", "topic": "${topic}", "action": "${action}"}'
+
+service:
+  type: ClusterIP

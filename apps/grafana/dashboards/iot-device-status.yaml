@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-iot-dashboard
+  namespace: default
+  labels:
+    grafana_dashboard: "1" # Typically used by Grafana sidecar to auto-discover dashboards
+data:
+  iot-status.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "Total Registered Devices",
+          "type": "stat",
+          "datasource": "PostgreSQL",
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "SELECT count(device_id) FROM devices WHERE status = 'ACTIVE'",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Offline Devices (No Ping > 2m)",
+          "type": "stat",
+          "datasource": "PostgreSQL",
+          "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+          "targets": [
+            {
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "SELECT count(device_id) FROM devices WHERE last_seen < now() - interval '2 minutes'",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Messages per Minute",
+          "type": "timeseries",
+          "datasource": "PostgreSQL",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+          "targets": [
+            {
+              "format": "time_series",
+              "rawQuery": true,
+              "rawSql": "SELECT $__timeGroup(ts, '1m'), count(*) as messages FROM iot_metrics WHERE $__timeFilter(ts) GROUP BY 1 ORDER BY 1",
+              "refId": "C"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 36,
+      "style": "dark",
+      "tags": ["iot", "sensors"],
+      "templating": { "list": [] },
+      "time": { "from": "now-6h", "to": "now" },
+      "timepicker": {},
+      "timezone": "",
+      "title": "IoT Fleet Status",
+      "uid": "iot-fleet-status",
+      "version": 1
+    }

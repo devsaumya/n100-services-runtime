@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-auth-api
+  labels:
+    app: iot-auth-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iot-auth-api
+  template:
+    metadata:
+      labels:
+        app: iot-auth-api
+    spec:
+      containers:
+      - name: iot-auth-api
+        image: iot-auth-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PGHOST
+          value: "postgres-cnpg.default.svc.cluster.local"
+        - name: PGDATABASE
+          value: "iot_db"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-cnpg-app
+              key: username
+              optional: true
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-cnpg-app
+              key: password
+              optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iot-auth-api
+spec:
+  selector:
+    app: iot-auth-api
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000

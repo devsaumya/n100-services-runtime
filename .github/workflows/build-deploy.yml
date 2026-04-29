@@ -17,8 +17,11 @@ jobs:
       - name: Generate Backstage Catalog
         run: node tools/backstage-generator/generate.js
 
-      - name: Build Image
-        run: docker build -t ghcr.io/${{ github.repository }}/api:latest ./apps/api || true # Mock build for demonstration
+      - name: Build API Image
+        run: docker build -t ghcr.io/${{ github.repository }}/api:latest ./apps/api || true
+
+      - name: Build IoT Auth API Image
+        run: docker build -t ghcr.io/${{ github.repository }}/iot-auth-api:latest -f ./apps/iot-auth-api/Dockerfile ./apps/iot-auth-api
 
       - name: Scan Image (Trivy)
         uses: aquasecurity/trivy-action@master
@@ -30,15 +33,19 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Push Image
+      - name: Push Images
         if: github.event_name != 'pull_request'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker push ghcr.io/${{ github.repository }}/api:latest || true
+          docker push ghcr.io/${{ github.repository }}/iot-auth-api:latest || true
 
       - name: Trigger Argo CD Sync
         if: success()
+        env:
+          ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
         run: |
           echo "Triggering Argo CD hard refresh..."
           # In a real setup, you would use argocd CLI or a webhook:
-          # curl -X POST https://${{ secrets.ARGOCD_URL }}/api/v1/applications/home-platform/sync -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}"
+          # curl -X POST https://${ARGOCD_URL}/api/v1/applications/home-platform/sync -H "Authorization: Bearer ${ARGOCD_TOKEN}"

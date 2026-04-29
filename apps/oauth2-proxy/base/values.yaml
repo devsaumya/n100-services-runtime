@@ -1,0 +1,39 @@
+config:
+  provider: github
+  email_domains: 
+    - "*"
+  upstreams: 
+    - "static://200" # Dummy upstream, as we use forwardAuth middleware in Traefik
+  
+  # Session Cookie configuration
+  cookie_secure: true
+  cookie_domains:
+    - ".yourdomain.com"
+  
+  set_authorization_header: true
+  set_xauthrequest: true
+
+# Use existing secret for OAUTH2_PROXY_CLIENT_ID, OAUTH2_PROXY_CLIENT_SECRET, and OAUTH2_PROXY_COOKIE_SECRET
+extraEnv:
+  - name: OAUTH2_PROXY_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: oauth2-proxy-secrets
+        key: client-id
+        optional: true
+  - name: OAUTH2_PROXY_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: oauth2-proxy-secrets
+        key: client-secret
+        optional: true
+  - name: OAUTH2_PROXY_COOKIE_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: oauth2-proxy-secrets
+        key: cookie-secret
+        optional: true
+
+service:
+  type: ClusterIP
+  portNumber: 4180

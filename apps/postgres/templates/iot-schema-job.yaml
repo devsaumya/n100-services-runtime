@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iot-schema-init
+  labels:
+    app: postgres
+spec:
+  template:
+    spec:
+      containers:
+      - name: schema-init
+        image: postgres:15-alpine
+        env:
+        - name: PGHOST
+          value: "postgres-cnpg.default.svc.cluster.local"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-cnpg-app
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-cnpg-app
+              key: password
+        - name: PGDATABASE
+          value: "iot_db"
+        command: ["psql"]
+        args:
+        - "-c"
+        - >
+          CREATE TABLE IF NOT EXISTS devices (
+            device_id TEXT PRIMARY KEY,
+            username  TEXT,
+            password  TEXT,
+            status    TEXT,
+            topic     TEXT,
+            last_seen TIMESTAMP,
+            created_at TIMESTAMP DEFAULT now()
+          );
+          
+          CREATE TABLE IF NOT EXISTS iot_metrics (
+            device TEXT,
+            metric TEXT,
+            value  DOUBLE PRECISION,
+            ts     TIMESTAMP
+          );
+          
+          CREATE INDEX IF NOT EXISTS idx_iot_metrics_device ON iot_metrics(device);
+          CREATE INDEX IF NOT EXISTS idx_iot_metrics_ts ON iot_metrics(ts DESC);
+      restartPolicy: OnFailure
